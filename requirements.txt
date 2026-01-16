@@ -1,0 +1,26 @@
+# Core dependencies for AAAI 2026 Tutorial: A Decade of Sparse Training
+# Dynamic Sparse Training (DST) implementation with MNIST
+
+# PyTorch ecosystem
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Numerical computing
+numpy>=1.24.0
+
+# Scientific computing (for sparse matrices)
+scipy>=1.10.0
+
+# Visualization
+matplotlib>=3.7.0
+cupy-cuda12x
+# Required: CuPy for truly sparse CSR operations (GPU or CPU mode)
+# IMPORTANT: Do NOT install cupy from PyPI (it builds from source - very slow!)
+# Instead, install the pre-built wheel matching your CUDA version:
+#   pip install cupy-cuda12x       # For CUDA 12.x (RECOMMENDED for your system)
+#   pip install cupy-cuda11x       # For CUDA 11.x
+#   pip install cupy-cpu          # CPU-only version (no GPU support)
+# 
+# Note: cupy-cuda12x provides both GPU and CPU support
+# cupy>=12.0.0  # Commented out - install cupy-cuda12x manually instead
+
