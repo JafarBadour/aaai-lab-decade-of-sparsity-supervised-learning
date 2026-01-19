@@ -703,34 +703,6 @@ def visualize_mask(mask, title="Weight Mask"):
     plt.show()
 
 
-def plot_mask_evolution_per_epoch(sparsity_per_epoch, masks_per_epoch=None, save_path='plots/mask_evolution.png'):
-    """Plot sparsity evolution per epoch for each layer (line plot)"""
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    
-    if not sparsity_per_epoch:
-        return
-    
-    # Get layer names from first epoch
-    layer_names = list(sparsity_per_epoch[0].keys())
-    epochs = range(len(sparsity_per_epoch))
-    
-    fig, ax = plt.subplots(figsize=(12, 6))
-    
-    for layer_name in layer_names:
-        sparsities = [sparsity_per_epoch[e][layer_name] * 100 for e in epochs]
-        ax.plot(epochs, sparsities, marker='o', label=layer_name, linewidth=2)
-    
-    ax.set_xlabel('Epoch', fontsize=12)
-    ax.set_ylabel('Sparsity (%)', fontsize=12)
-    ax.set_title('Mask Evolution: Sparsity per Layer per Epoch', fontsize=14, fontweight='bold')
-    ax.legend(loc='best', fontsize=10)
-    ax.grid(True, alpha=0.3)
-    ax.set_ylim([0, 100])
-    
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"✓ Saved mask evolution plot to {save_path}")
-    plt.close()
 
 
 def plot_mask_2d_evolution(masks_per_epoch, save_path='plots/mask_2d_evolution.png'):

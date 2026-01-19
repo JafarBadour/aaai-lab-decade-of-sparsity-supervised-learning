@@ -1,0 +1,348 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Berlin}
+\usecolortheme{default}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Conference-style settings
+\setbeamertemplate{navigation symbols}{} % Remove navigation symbols
+\setbeamertemplate{footline}[frame number] % Simple frame numbers
+\setbeamerfont{footline}{size=\tiny}
+\setbeamertemplate{itemize items}[circle] % Use circles for bullets
+\setbeamertemplate{blocks}[rounded][shadow=true] % Rounded blocks with shadow
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+\setbeamerfont{block body}{size=\small}
+
+% Code styling
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    breaklines=true,
+    frame=single
+}
+
+\title{Dynamic Sparse Training (DST)}
+\subtitle{A Decade of Sparse Training: Why Do We Still Stick to Dense Training?}
+\author{AAAI 2026 Tutorial}
+\institute{}
+\date{}
+
+\begin{document}
+
+% Title slide
+\begin{frame}
+\titlepage
+\end{frame}
+
+% Slide 1: Motivation
+\begin{frame}{The Paradox}
+\begin{block}{The Problem}
+\begin{itemize}
+    \item Neural networks are \textbf{over-parameterized}
+    \item Most weights are redundant or unnecessary
+    \item Can we train with \textbf{95\% fewer parameters}?
+\end{itemize}
+\end{block}
+
+\begin{block}{The Paradox}
+\begin{itemize}
+    \item DST is algorithmically mature
+    \item Can perform on par with dense training
+    \item \textbf{But most implementations remain dense!}
+\end{itemize}
+\end{block}
+
+\vspace{0.3cm}
+\textbf{Why?} Let's find out...
+\end{frame}
+
+% Slide 2: What is Sparse Training?
+\begin{frame}{What is Sparse Training?}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Dense Network:}
+\begin{itemize}
+    \item All weights active
+    \item 1.3M parameters
+    \item Full memory usage
+\end{itemize}
+
+\vspace{0.5cm}
+\textbf{Sparse Network (95\%):}
+\begin{itemize}
+    \item Only 5\% weights active
+    \item $\sim$65K parameters
+    \item 95\% memory reduction
+\end{itemize}
+
+\column{0.5\textwidth}
+\begin{center}
+\Large
+\textbf{95\% Sparsity}\\
+\vspace{0.3cm}
+\small
+\begin{tabular}{c|c}
+Dense & Sparse \\
+\hline
+1.3M & 65K \\
+100\% & 5\%
+\end{tabular}
+\end{center}
+\end{columns}
+
+\vspace{0.5cm}
+\begin{alertblock}{The Promise}
+\textbf{Insane 95\% parameter reduction!} Can we achieve this with minimal performance loss?
+\end{alertblock}
+\end{frame}
+
+% Slide 3: Simulated vs Truly Sparse
+\begin{frame}{Simulated vs Truly Sparse}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Simulated Sparsity (Dense+Mask)}
+\begin{itemize}
+    \item Binary mask over dense weights
+    \item \textcolor{red}{Still stores ALL weights}
+    \item \textcolor{red}{Still computes with dense ops}
+    \item \textcolor{green}{Easy to implement}
+    \item \textcolor{red}{No memory savings}
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Truly Sparse (CSR)}
+\begin{itemize}
+    \item Sparse matrix formats (CSR/COO)
+    \item \textcolor{green}{Stores only non-zeros}
+    \item \textcolor{green}{Custom sparse kernels}
+    \item \textcolor{red}{Complex to implement}
+    \item \textcolor{green}{Real memory savings}
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+\begin{alertblock}{Key Insight}
+Most research uses \textbf{simulated sparsity} - convenient but doesn't deliver true efficiency!
+\end{alertblock}
+\end{frame}
+
+% Slide 4: Architecture
+\begin{frame}{Network Architecture}
+\begin{block}{Simple CNN for MNIST}
+\begin{itemize}
+    \item \textbf{Conv Layers:} 2 conv layers (16, 32 channels)
+    \item \textbf{FC Layers:} 4 fully connected layers
+    \item \textbf{Total:} 1.3M parameters
+    \item \textbf{Dataset:} MNIST (60K train, 10K test)
+\end{itemize}
+\end{block}
+
+\begin{block}{Masked Implementation}
+\begin{itemize}
+    \item \texttt{MaskedConv2d} - masked convolutional layers
+    \item \texttt{MaskedLinear} - masked fully connected layers
+    \item Binary mask: 1 = active, 0 = pruned
+    \item Mask applied during forward pass
+\end{itemize}
+\end{block}
+\end{frame}
+
+% Slide 5: Dynamic Sparse Training
+\begin{frame}{Dynamic Sparse Training (DST)}
+\begin{block}{Core Algorithm}
+\textbf{Prune-and-Regrow Strategy:}
+\begin{enumerate}
+    \item \textbf{Prune:} Remove small-magnitude weights
+    \item \textbf{Regrow:} Add random new connections
+    \item \textbf{Maintain:} Constant sparsity level
+\end{enumerate}
+\end{block}
+
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Magnitude Pruning:}
+\begin{itemize}
+    \item Remove weights with smallest $|w|$
+    \item Intuition: Small weights contribute less
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Random Regrowth:}
+\begin{itemize}
+    \item Explore new connectivity
+    \item Reinitialize to small random values
+    \item Alternative: Gradient-based (RigL)
+\end{itemize}
+\end{columns}
+
+\vspace{0.3cm}
+\textbf{Applied every 2 epochs} during training
+\end{frame}
+
+% Slide 6: Training Results
+\begin{frame}{Training Results}
+\begin{block}{MNIST Classification (10 epochs, 95\% sparsity)}
+\begin{center}
+\begin{tabular}{l|c|c}
+ & \textbf{Dense} & \textbf{Dense+Mask} \\
+\hline
+Test Accuracy & 98.98\% & 96.71\% \\
+Test Loss & 0.0449 & 0.0992 \\
+Parameters & 1.3M & 65K (95\% sparse) \\
+\hline
+\textbf{Performance Gap} & & \textbf{-2.27\%}
+\end{tabular}
+\end{center}
+\end{block}
+
+\begin{alertblock}{Remarkable Results!}
+\begin{itemize}
+    \item \textbf{Insane 95\% parameter reduction} (1.3M $\rightarrow$ 65K)
+    \item \textbf{Only 2.27\% accuracy drop} - metrics barely affected!
+    \item Achieves \textbf{96.71\% accuracy} with just 5\% of weights
+    \item DST maintains sparsity while dynamically exploring connectivity
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+% Slide 7: Mask Evolution
+\begin{frame}{Mask Evolution During Training}
+\begin{block}{Sparsity Maintained}
+\begin{itemize}
+    \item Initial: 95\% sparsity (random)
+    \item After DST: $\sim$95\% sparsity maintained
+    \item Topology changes dynamically
+\end{itemize}
+\end{block}
+
+\begin{block}{Visualization (Last Layer)}
+\begin{center}
+\textcolor{red}{\textbf{Red:}} Newly pruned \quad
+\textcolor{green}{\textbf{Green:}} Newly regrown \quad
+\textbf{White:} Unchanged active \quad
+\textbf{Black:} Unchanged pruned
+\end{center}
+\end{block}
+
+\vspace{0.2cm}
+\begin{center}
+\includegraphics[width=\textwidth]{plots/mask_2d_evolution_fc4.png}
+\small
+\textbf{FC4 Layer:} Deletion and regrowth over epochs
+\end{center}
+
+\vspace{0.2cm}
+\textbf{Key Insight:} Network topology adapts during training!
+\end{frame}
+
+% Slide 8: Benchmarking
+\begin{frame}{Benchmarking: Simulated vs Truly Sparse}
+\begin{block}{Inference Time Comparison (100 samples, 10 runs)}
+\begin{center}
+\begin{tabular}{l|c}
+\textbf{Method} & \textbf{Time (ms)} \\
+\hline
+Dense+Mask (GPU) & 0.68 \\
+Dense+Mask (CPU) & 25.03 \\
+Truly Sparse CSR (CPU) & 1351.50 \\
+Truly Sparse CSR (GPU) & 1.04 \\
+\hline
+\textbf{GPU Comparison} & \textbf{Dense+Mask 1.53x faster}
+\end{tabular}
+\end{center}
+\end{block}
+
+\begin{alertblock}{Critical Finding}
+\begin{itemize}
+    \item \textbf{Trade-off:} Slight slowdown in inference (1.53x)
+    \item \textbf{But:} Drastic 95\% parameter reduction
+    \item Truly sparse requires specialized implementations
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+% Slide 9: The Paradox Explained
+\begin{frame}{Why Do We Still Stick to Dense Training?}
+\begin{block}{The Barriers}
+\begin{enumerate}
+    \item \textbf{Simulated Sparsity}
+    \begin{itemize}
+        \item Convenient but no real-world savings
+        \item Still uses dense operations
+    \end{itemize}
+    
+    \item \textbf{Truly Sparse Implementation}
+    \begin{itemize}
+        \item Requires sparse formats (CSR/COO)
+        \item Needs custom kernels
+        \item Significant engineering effort
+    \end{itemize}
+    
+    \item \textbf{System-Level Barriers}
+    \begin{itemize}
+        \item Hardware optimized for dense ops
+        \item Frameworks favor dense operations
+        \item Sparse overhead for low sparsity
+    \end{itemize}
+\end{enumerate}
+\end{block}
+\end{frame}
+
+% Slide 10: Key Takeaways
+\begin{frame}{Key Takeaways}
+\begin{block}{What We Learned}
+\begin{enumerate}
+    \item \textbf{Sparse training works!} Insane 95\% parameter reduction with only 2.27\% accuracy drop
+    \item \textbf{DST adapts topology} dynamically during training (prune + regrow)
+    \item \textbf{Simulated vs Truly Sparse:} Big difference in real-world efficiency
+    \item \textbf{The paradox:} Algorithm works brilliantly, but implementation remains challenging
+\end{enumerate}
+\end{block}
+
+\begin{alertblock}{The Promise}
+\begin{itemize}
+    \item \textbf{95\% parameter reduction} - from 1.3M to just 65K!
+    \item \textbf{Metrics barely affected} - only 2.27\% accuracy loss
+    \item Significant memory and energy savings
+    \item But requires truly sparse implementations to realize full benefits
+\end{itemize}
+\end{alertblock}
+
+\vspace{0.3cm}
+\textbf{Next Steps:} Hardware-software co-design for sparse training
+\end{frame}
+
+% Slide 11: Conclusion
+\begin{frame}{Conclusion}
+\begin{center}
+\Large
+\textbf{Dynamic Sparse Training:}\\
+\vspace{0.5cm}
+\large
+\textbullet\ Algorithmically mature\\
+\textbullet\ \textbf{Insane 95\% parameter reduction}\\
+\textbullet\ \textbf{Metrics barely affected} (only 2.27\% drop)\\
+\textbullet\ Performs on par with dense\\
+\vspace{0.5cm}
+\Large
+\textbf{But implementation remains challenging}\\
+\vspace{0.5cm}
+\large
+The gap between research and practice\\
+needs hardware-software co-design
+\end{center}
+
+\vspace{0.5cm}
+\begin{center}
+\small
+\textbf{AAAI 2026 Tutorial: A Decade of Sparse Training}
+\end{center}
+\end{frame}
+
+\end{document}
+
