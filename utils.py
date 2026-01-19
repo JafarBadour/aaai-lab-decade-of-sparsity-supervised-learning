@@ -742,10 +742,17 @@ def plot_mask_2d_evolution(masks_per_epoch, save_path='plots/mask_2d_evolution.p
     
     # Get layer names from first epoch
     layer_names = list(masks_per_epoch[0].keys())
+    # Filter out convolutional layers - only plot FC layers
+    layer_names = [name for name in layer_names if 'conv' not in name.lower()]
     num_epochs = len(masks_per_epoch)
+    
+    if not layer_names:
+        print("No FC layers to plot (conv layers skipped)")
+        return
     
     # Create a separate figure for each layer
     for layer_name in layer_names:
+        
         epochs_per_row = min(10, num_epochs)
         num_rows = (num_epochs + epochs_per_row - 1) // epochs_per_row
         
@@ -852,7 +859,7 @@ def plot_mask_2d_evolution(masks_per_epoch, save_path='plots/mask_2d_evolution.p
         print(f"✓ Saved 2D mask evolution for {layer_name} to {layer_save_path}")
         plt.close()
     
-    print(f"\n✓ Generated 2D mask evolution plots for {len(layer_names)} layers")
+    print(f"\n✓ Generated 2D mask evolution plots for {len(layer_names)} FC layers (conv layers skipped)")
 
 
 def plot_dense_vs_masked_comparison(dense_train_loss, dense_train_acc, dense_test_loss, dense_test_acc,
